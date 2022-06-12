@@ -1,0 +1,221 @@
+---
+
+- name: Installing or Updating of select AppImage Applications
+  hosts: localhost
+  vars:
+    - libreoffice_version: "{{ lookup('url', 'https://libreoffice.soluzioniopen.com/') | regex_search('([0-9]\\.[0-9]\\.[0-9]) \\(Fresh\\)', '\\1') | join }}"
+
+  pre_tasks:
+
+    - name: Check if Electrum version file exists
+      ansible.builtin.stat:
+        path: /home/{{ ansible_user_id }}/bin/Electrum_VERSION
+      register: electrum_current
+      tags: electrum
+
+    - name: Get current Electrum version
+      ansible.builtin.command: cat '/home/{{ ansible_user_id }}/bin/Electrum_VERSION'
+      register: electrum_current
+      when: electrum_current.stat.exists
+      tags: electrum
+
+    - name: Check if KeepassXC version file exists
+      ansible.builtin.stat:
+        path: /home/{{ ansible_user_id }}/bin/KeepassXC_VERSION
+      register: keepassxc_current
+      tags: keepassxc
+
+    - name: Get current KeepassXC version
+      ansible.builtin.command: cat '/home/{{ ansible_user_id }}/bin/KeepassXC_VERSION'
+      register: keepassxc_current
+      when: keepassxc_current.stat.exists
+      tags: keepassxc
+
+    - name: Check if LibreOffice version file exists
+      ansible.builtin.stat:
+        path: /home/{{ ansible_user_id }}/bin/Libreoffice_VERSION
+      register: libreoffice_current
+      tags: libreoffice
+
+    - name: Get current LibreOffice version
+      ansible.builtin.command: cat '/home/{{ ansible_user_id }}/bin/Libreoffice_VERSION'
+      register: libreoffice_current
+      when: libreoffice_current.stat.exists
+      tags: libreoffice
+
+    - name: Check if Authenticator version file exists
+      ansible.builtin.stat:
+        path: /home/{{ ansible_user_id }}/bin/Yubikey_Authenticator_VERSION
+      register: authenticator_current
+      tags: authenticator
+
+    - name: Get current Authenticator version
+      ansible.builtin.command: cat '/home/{{ ansible_user_id }}/bin/Yubikey_Authenticator_VERSION'
+      register: authenticator_current
+      when: authenticator_current.stat.exists
+      tags: authenticator
+
+    - name: Check if Manager version file exists
+      ansible.builtin.stat:
+        path: /home/{{ ansible_user_id }}/bin/Yubikey_Manager_VERSION
+      register: manager_current
+      tags: manager
+
+    - name: Get current Manager version
+      ansible.builtin.command: cat '/home/{{ ansible_user_id }}/bin/Yubikey_Manager_VERSION'
+      register:  manager_current
+      when:  manager_current.stat.exists
+      tags: manager
+
+    - name: Get Electrum Latest Version
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/spesmilo/electrum/tags
+        return_content: true
+        body_format: json
+      register: electrum
+      tags: electrum
+
+    - name: Get KeepassXC Latest Version
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/keepassxreboot/keepassxc/releases/latest
+        return_content: true
+        body_format: json
+      register: keepassxc
+      tags: keepassxc
+
+    - name: Get Yubikey Authenticator Latest Version
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/Yubico/yubioath-desktop/releases/latest
+        return_content: true
+        body_format: json
+      register: yubi_oath
+      tags: authenticator
+
+    - name: Get Yubikey Manager QT Latest Version
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/Yubico/yubikey-manager-qt/releases/latest
+        return_content: true
+        body_format: json
+      register: yubi_mngr
+      tags: manager
+
+    - name: Create bin directory in my home directory
+      ansible.builtin.file:
+        dest: /home/{{ ansible_user_id }}/bin
+        state: directory
+        mode: 0744
+      tags: always
+
+  tasks:
+
+    - name: electrum
+      ansible.builtin.import_tasks: app_general.yml
+      vars:
+        - application_version: "{{ electrum.json[6].name }}"
+        - application_url: https://download.electrum.org/{{ application_version }}/electrum-{{ application_version }}-x86_64.AppImage
+        - application_name: Electrum
+        - appimage_dest: /home/{{ ansible_user_id }}/bin/{{ application_name }}.AppImage
+        - appimage_icon: /home/{{ ansible_user_id }}/bin/{{ application_name }}.png
+        - appimage_category: Utility
+      when: electrum_current.skipped is defined or electrum_current.stdout != electrum.json[6].name
+      tags: electrum
+
+    - name: keepassxc
+      ansible.builtin.import_tasks: app_keepassxc.yml
+      vars:
+        - application_version: "{{ keepassxc.json.tag_name }}"
+        - application_sha256: sha256:{{ lookup('url', 'https://github.com/keepassxreboot/keepassxc/releases/download/{{ application_version }}/KeePassXC-{{ application_version }}-x86_64.AppImage.DIGEST') | regex_search('^.* ') }}
+        - application_url: "https://github.com/keepassxreboot/keepassxc/releases/download/{{ application_version }}/KeePassXC-{{ application_version }}-x86_64.AppImage"
+        - application_name: KeepassXC
+        - appimage_dest: /home/{{ ansible_user_id }}/bin/{{ application_name }}.AppImage
+        - appimage_icon: /home/{{ ansible_user_id }}/bin/{{ application_name }}.png
+        - appimage_category: Utility
+      when: keepassxc_current.skipped is defined or keepassxc_current.stdout != keepassxc.json.tag_name
+      tags: keepassxc
+
+    - name: libreoffice
+      ansible.builtin.import_tasks: app_libreoffice.yml
+      vars:
+        - application_url: https://libreoffice.soluzioniopen.com/stable/standard/LibreOffice-fresh.standard-x86_64.AppImage
+        - application_name: LibreOffice
+        - appimage_dest: /home/{{ ansible_user_id }}/bin/{{ application_name }}.AppImage
+        - appimage_icon: /home/{{ ansible_user_id }}/bin/{{ application_name }}.png
+        - appimage_category: Office
+      when: libreoffice_current.skipped is defined or libreoffice_current.stdout != libreoffice_version
+      tags: libreoffice
+
+    - name: yubico_oath
+      ansible.builtin.import_tasks: app_general.yml
+      vars:
+        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - application_version: "{{ authenticator_version }}"
+        - application_url: https://developers.yubico.com/yubioath-desktop/Releases/yubioath-desktop-{{ application_version }}-linux.AppImage
+        - application_name: Yubikey_Authenticator
+        - appimage_dest: /home/{{ ansible_user_id }}/bin/{{ application_name }}.AppImage
+        - appimage_icon: /home/{{ ansible_user_id }}/bin/{{ application_name }}.png
+        - appimage_category: Utility
+      when: authenticator_current.skipped is defined or authenticator_current.stdout != authenticator_version
+      tags: authenticator
+
+    - name: yubikey_manager
+      ansible.builtin.import_tasks: app_general.yml
+      vars:
+        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - application_version: "{{ manager_version }}"
+        - application_url: https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-{{ application_version }}-linux.AppImage
+        - application_name: Yubikey_Manager
+        - appimage_dest: /home/{{ ansible_user_id }}/bin/{{ application_name }}.AppImage
+        - appimage_icon: /home/{{ ansible_user_id }}/bin/{{ application_name }}.png
+        - appimage_category: Utility
+      when: manager_current.skipped is defined or manager_current.stdout != manager_version
+      tags: manager
+
+  post_tasks:
+
+    - name: Update desktop file database
+      ansible.builtin.command: update-desktop-database ~/.local/share/applications
+      tags: always
+
+    - name: Write Electrum Version to file
+      ansible.builtin.copy:
+        content: "{{ electrum.json[6].name }}"
+        dest: /home/{{ ansible_user_id }}/bin/Electrum_VERSION
+        mode: 0644
+      when: electrum_current.skipped is defined or electrum_current.stdout != electrum.json[6].name
+      tags: electrum
+
+    - name: Write KeppassXC Version to file
+      ansible.builtin.copy:
+        content: "{{ keepassxc.json.tag_name }}"
+        dest: /home/{{ ansible_user_id }}/bin/KeepassXC_VERSION
+        mode: 0644
+      when: keepassxc_current.skipped is defined or keepassxc_current.stdout != keepassxc.json.tag_name
+      tags: keepassxc
+
+    - name: Write Libreoffice Version to file
+      ansible.builtin.copy:
+        content: "{{ libreoffice_version }}"
+        dest: /home/{{ ansible_user_id }}/bin/Libreoffice_VERSION
+        mode: 0644
+      when: libreoffice_current.skipped is defined or libreoffice_current.stdout != libreoffice_version
+      tags: libreoffice
+
+    - name: Write Authenticator Version to file
+      ansible.builtin.copy:
+        content: "{{ authenticator_version }}"
+        dest: /home/{{ ansible_user_id }}/bin/Yubikey_Authenticator_VERSION
+        mode: 0644
+      vars:
+        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+      when: authenticator_current.skipped is defined or authenticator_current.stdout != authenticator_version
+      tags: authenticator
+
+    - name: Write Manager Version to file
+      ansible.builtin.copy:
+        content: "{{ manager_version }}"
+        dest: /home/{{ ansible_user_id }}/bin/Yubikey_Manager_VERSION
+        mode: 0644
+      vars:
+        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+      when: manager_current.skipped is defined or manager_current.stdout != manager_version
+      tags: manager

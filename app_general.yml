@@ -1,0 +1,21 @@
+---
+# tasks file for AppImage
+- name: Download {{ application_name }} {{ application_version }} AppImage
+  ansible.builtin.get_url:
+    url: "{{ application_url }}"
+    dest: "{{ appimage_dest }}"
+    mode: 0744
+    force: true
+
+- name: Copy {{ application_name }} icon to bin
+  ansible.builtin.copy:
+    src: "files/{{ application_name }}.png"
+    dest: "{{ appimage_icon }}"
+    mode: 0644
+
+- name: "Create a .desktop file for {{ application_name }}"
+  ansible.builtin.template:
+    src: templates/desktop_file.j2
+    dest: /home/{{ ansible_user_id }}/.local/share/applications/{{ application_name }}.desktop
+    mode: 0644
+    force: true
