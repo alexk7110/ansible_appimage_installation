@@ -3,7 +3,7 @@
 - name: Installing or Updating of select AppImage Applications
   hosts: localhost
   vars:
-    - libreoffice_version: "{{ lookup('url', 'https://libreoffice.soluzioniopen.com/') | regex_search('([0-9]\\.[0-9]\\.[0-9]) \\(Fresh\\)', '\\1') | join }}"
+    - libreoffice_version: "{{ lookup('url', 'https://libreoffice.soluzioniopen.com/') | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+) \\(Fresh\\)', '\\1') | join }}"
 
   pre_tasks:
 
@@ -147,7 +147,7 @@
     - name: yubico_oath
       ansible.builtin.import_tasks: app_general.yml
       vars:
-        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+') }}"
         - application_version: "{{ authenticator_version }}"
         - application_url: https://developers.yubico.com/yubioath-desktop/Releases/yubioath-desktop-{{ application_version }}-linux.AppImage
         - application_name: Yubikey_Authenticator
@@ -160,7 +160,7 @@
     - name: yubikey_manager
       ansible.builtin.import_tasks: app_general.yml
       vars:
-        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+') }}"
         - application_version: "{{ manager_version }}"
         - application_url: https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-{{ application_version }}-linux.AppImage
         - application_name: Yubikey_Manager
@@ -206,7 +206,7 @@
         dest: /home/{{ ansible_user_id }}/bin/Yubikey_Authenticator_VERSION
         mode: 0644
       vars:
-        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - authenticator_version: "{{ yubi_oath.json.tag_name | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+') }}"
       when: authenticator_current.skipped is defined or authenticator_current.stdout != authenticator_version
       tags: authenticator
 
@@ -216,6 +216,6 @@
         dest: /home/{{ ansible_user_id }}/bin/Yubikey_Manager_VERSION
         mode: 0644
       vars:
-        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]\\.[0-9]\\.[0-9]') }}"
+        - manager_version: "{{ yubi_mngr.json.tag_name | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+') }}"
       when: manager_current.skipped is defined or manager_current.stdout != manager_version
       tags: manager
